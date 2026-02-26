@@ -3,530 +3,808 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Case Management Tracker</title>
+<title>Case Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Source+Sans+3:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: Arial, sans-serif; background: #f0f3f8; color: #1a1a2e; font-size: 13px; }
+/* ── Reset & Base ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  header {
-    background: linear-gradient(135deg, #1f3864 0%, #2e5fa3 100%);
-    color: white; padding: 18px 28px; display: flex; align-items: center; justify-content: space-between;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.25);
-  }
-  header h1 { font-size: 20px; letter-spacing: 0.5px; }
-  header p { font-size: 12px; opacity: 0.8; margin-top: 3px; }
+:root {
+  --navy:      #0f1f3d;
+  --blue:      #1a3a6b;
+  --mid:       #2e5fa3;
+  --accent:    #c8a84b;
+  --light:     #e8eef8;
+  --lighter:   #f4f7fd;
+  --white:     #ffffff;
+  --text:      #1a2540;
+  --muted:     #6b7a99;
+  --danger:    #c0392b;
+  --success:   #1e7e4a;
+  --overdue:   #8b1a1a;
+  --due-soon:  #7d4e00;
+  --shadow:    0 4px 24px rgba(15,31,61,0.10);
+  --radius:    8px;
+}
 
-  .toolbar {
-    background: white; padding: 12px 28px; display: flex; gap: 12px; align-items: center;
-    border-bottom: 2px solid #d9e1f2; flex-wrap: wrap;
-  }
-  .toolbar label { font-weight: bold; color: #2e5fa3; font-size: 12px; }
-  select, input[type="text"] {
-    border: 1.5px solid #c9daf8; border-radius: 5px; padding: 6px 10px;
-    font-size: 12px; background: #f7f9ff; outline: none;
-    transition: border-color 0.2s;
-  }
-  select:focus, input:focus { border-color: #2e5fa3; }
+body {
+  font-family: 'Source Sans 3', sans-serif;
+  background: var(--lighter);
+  color: var(--text);
+  font-size: 13.5px;
+  min-height: 100vh;
+}
 
-  .btn {
-    padding: 7px 16px; border-radius: 5px; border: none; cursor: pointer;
-    font-size: 12px; font-weight: bold; transition: all 0.15s;
-  }
-  .btn-primary { background: #2e5fa3; color: white; }
-  .btn-primary:hover { background: #1f3864; }
-  .btn-success { background: #34a853; color: white; }
-  .btn-success:hover { background: #218838; }
-  .btn-danger { background: #e53935; color: white; font-size: 11px; padding: 4px 10px; }
-  .btn-danger:hover { background: #b71c1c; }
-  .btn-add-task { background: #c9daf8; color: #1f3864; font-size: 11px; padding: 4px 10px; border: 1px solid #2e5fa3; }
-  .btn-add-task:hover { background: #a4c2f4; }
+/* ── Header ──────────────────────────────────────────────── */
+header {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--blue) 60%, #1d4080 100%);
+  padding: 0 32px;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 68px;
+  box-shadow: 0 2px 20px rgba(15,31,61,0.35);
+  position: sticky; top: 0; z-index: 50;
+}
 
-  .container { padding: 20px 28px; overflow-x: auto; }
+.header-left { display: flex; align-items: center; gap: 16px; }
 
-  table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
+.header-emblem {
+  width: 38px; height: 38px;
+  background: var(--accent);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 0 0 3px rgba(200,168,75,0.25);
+  flex-shrink: 0;
+}
 
-  .section-header th {
-    padding: 6px 10px; font-size: 11px; font-weight: bold; letter-spacing: 0.5px;
-  }
-  .section-case { background: #2e5fa3; color: white; }
-  .section-task { background: #17375e; color: white; }
-  .section-act { background: #1f3864; color: white; }
+header h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 19px;
+  color: var(--white);
+  letter-spacing: 0.3px;
+}
+header p { font-size: 11px; color: rgba(255,255,255,0.55); margin-top: 1px; letter-spacing: 0.2px; }
 
-  thead tr.col-headers th {
-    padding: 9px 10px; font-size: 11px; font-weight: bold; letter-spacing: 0.3px; white-space: nowrap;
-  }
-  .th-case { background: #2e5fa3; color: white; }
-  .th-task { background: #17375e; color: white; }
-  .th-act  { background: #1f3864; color: white; }
+.header-right { display: flex; align-items: center; gap: 10px; }
 
-  tbody tr { border-bottom: 1px solid #e8edf5; transition: background 0.1s; }
-  tbody tr:hover { filter: brightness(0.97); }
+/* ── Buttons ─────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 7px 16px; border-radius: var(--radius);
+  border: none; cursor: pointer;
+  font-family: 'Source Sans 3', sans-serif;
+  font-size: 12.5px; font-weight: 600;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.btn-primary  { background: var(--mid);     color: var(--white); }
+.btn-primary:hover  { background: var(--blue); transform: translateY(-1px); box-shadow: 0 3px 10px rgba(46,95,163,0.3); }
+.btn-gold     { background: var(--accent);  color: var(--navy);  }
+.btn-gold:hover     { background: #b8952e;  transform: translateY(-1px); box-shadow: 0 3px 10px rgba(200,168,75,0.3); }
+.btn-ghost    { background: rgba(255,255,255,0.1); color: var(--white); border: 1px solid rgba(255,255,255,0.2); }
+.btn-ghost:hover    { background: rgba(255,255,255,0.2); }
+.btn-danger   { background: var(--danger);  color: var(--white); font-size: 11px; padding: 4px 10px; }
+.btn-danger:hover   { background: #a93226; }
+.btn-add-task { background: var(--light);   color: var(--blue);  font-size: 11px; padding: 4px 10px; border: 1px solid var(--mid); }
+.btn-add-task:hover { background: #d4dfef; }
+.btn-sm       { padding: 4px 10px; font-size: 11px; }
 
-  .client-row-a td.case-col { background: #ffffff; }
-  .client-row-b td.case-col { background: #f2f2f2; }
-  .client-row-a td.task-col { background: #d9e1f2; }
-  .client-row-b td.task-col { background: #eaf1fb; }
-  td.act-col { background: #f7f9ff; }
+/* ── Toolbar ─────────────────────────────────────────────── */
+.toolbar {
+  background: var(--white);
+  padding: 10px 32px;
+  display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+  border-bottom: 1.5px solid var(--light);
+  box-shadow: 0 2px 8px rgba(15,31,61,0.05);
+}
 
-  td { padding: 7px 10px; vertical-align: middle; }
+.toolbar-group { display: flex; align-items: center; gap: 8px; }
+.toolbar label { font-weight: 700; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
 
-  .task-done td { background: #d9ead3 !important; text-decoration: line-through; opacity: 0.7; }
+select, input[type="text"] {
+  border: 1.5px solid #d0daea; border-radius: 6px;
+  padding: 6px 10px; font-size: 12.5px;
+  font-family: 'Source Sans 3', sans-serif;
+  background: var(--lighter); color: var(--text);
+  outline: none; transition: border-color 0.2s;
+}
+select:focus, input:focus { border-color: var(--mid); background: white; }
 
-  .overdue { color: #cc0000; font-weight: bold; background: #ffcccc !important; border-radius: 3px; padding: 2px 5px; }
-  .due-soon { color: #b45309; font-weight: bold; }
+.toolbar-right { margin-left: auto; display: flex; gap: 8px; }
 
-  .client-name { font-weight: bold; color: #1f3864; }
+/* ── Status bar ──────────────────────────────────────────── */
+#statusBar {
+  padding: 8px 32px;
+  font-size: 12px; color: var(--muted);
+  background: var(--lighter);
+  border-bottom: 1px solid var(--light);
+  display: flex; align-items: center; gap: 8px;
+  min-height: 34px;
+}
+.status-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--success); flex-shrink: 0;
+}
+.status-dot.loading { background: var(--accent); animation: pulse 1s infinite; }
+.status-dot.error   { background: var(--danger); }
 
-  input.editable {
-    border: none; background: transparent; width: 100%; font-family: Arial; font-size: 13px;
-    outline: none; color: inherit;
-  }
-  input.editable:focus { background: rgba(255,255,255,0.8); border-bottom: 1.5px solid #2e5fa3; border-radius: 0; }
-  input.editable[type="date"] { min-width: 120px; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
-  .done-check { width: 20px; height: 20px; cursor: pointer; accent-color: #34a853; }
+/* ── Setup Banner ────────────────────────────────────────── */
+#setupBanner {
+  display: none;
+  margin: 20px 32px;
+  background: #fff8e6;
+  border: 1.5px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+}
+#setupBanner h3 { color: var(--navy); font-family: 'Playfair Display', serif; margin-bottom: 8px; }
+#setupBanner p  { color: var(--text); font-size: 13px; line-height: 1.6; }
+#setupBanner code {
+  background: var(--lighter); border: 1px solid var(--light);
+  padding: 2px 6px; border-radius: 4px; font-size: 12px; word-break: break-all;
+}
+.setup-url-row { display: flex; gap: 10px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+#scriptUrlInput { flex: 1; min-width: 280px; font-size: 12px; }
 
-  .client-group-header {
-    background: linear-gradient(90deg, #eef2fa 0%, #f7f9ff 100%);
-    border-top: 2px solid #2e5fa3;
-  }
-  .client-group-header td {
-    padding: 8px 10px; font-weight: bold; color: #1f3864;
-  }
+/* ── Main content ────────────────────────────────────────── */
+.container { padding: 24px 32px; }
 
-  .add-client-row td { background: #f0f7ff; text-align: center; padding: 10px; }
-  .empty-state { text-align: center; color: #888; padding: 30px; font-style: italic; }
+/* ── Table ───────────────────────────────────────────────── */
+.table-wrap {
+  background: var(--white);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--light);
+}
 
-  .sort-arrow { font-size: 10px; margin-left: 4px; opacity: 0.7; }
+table { width: 100%; border-collapse: collapse; }
 
-  @media print {
-    .btn, .toolbar { display: none; }
-    .container { padding: 0; }
-    body { background: white; }
-  }
+.thead-section th {
+  padding: 7px 12px; font-size: 10.5px; font-weight: 700;
+  letter-spacing: 0.8px; text-transform: uppercase;
+}
+.th-case-section { background: var(--blue);  color: white; }
+.th-task-section { background: #17375e;       color: white; }
+.th-act-section  { background: var(--navy);   color: white; }
 
-  .modal-overlay {
-    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center;
-  }
-  .modal-overlay.active { display: flex; }
-  .modal {
-    background: white; border-radius: 10px; padding: 28px; width: 420px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto;
-  }
-  .modal h3 { color: #1f3864; margin-bottom: 18px; font-size: 16px; }
-  .form-group { margin-bottom: 14px; }
-  .form-group label { display: block; font-weight: bold; color: #2e5fa3; font-size: 12px; margin-bottom: 5px; }
-  .form-group input, .form-group textarea, .form-group select {
-    width: 100%; padding: 8px 10px; border: 1.5px solid #c9daf8; border-radius: 5px;
-    font-size: 13px; font-family: Arial;
-  }
-  .form-group textarea { height: 70px; resize: vertical; }
-  .modal-btns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+.thead-cols th {
+  padding: 10px 12px; font-size: 11.5px; font-weight: 700;
+  letter-spacing: 0.3px; white-space: nowrap;
+  border-bottom: 2px solid rgba(255,255,255,0.15);
+}
+.th-case { background: var(--blue);  color: rgba(255,255,255,0.9); }
+.th-task { background: #17375e;       color: rgba(255,255,255,0.9); }
+.th-act  { background: var(--navy);   color: rgba(255,255,255,0.9); }
+
+tbody tr { border-bottom: 1px solid #eaeff8; transition: filter 0.1s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover:not(.task-done) { filter: brightness(0.97); }
+
+td {
+  padding: 8px 12px; vertical-align: middle;
+}
+
+.td-case-a { background: var(--white); }
+.td-case-b { background: #f7f9fd; }
+.td-task-a { background: #ebf0fb; }
+.td-task-b { background: #f0f4fc; }
+.td-act    { background: var(--lighter); white-space: nowrap; text-align: center; }
+
+.task-done td { opacity: 0.55; }
+.task-done td .td-task-a,
+.task-done td .td-task-b { background: #e8f5ee !important; text-decoration: line-through; }
+
+.client-name-cell { font-weight: 700; color: var(--navy); }
+
+/* editable inputs */
+input.editable {
+  border: none; background: transparent;
+  width: 100%; font-family: 'Source Sans 3', sans-serif;
+  font-size: 13.5px; color: inherit; outline: none;
+}
+input.editable:focus {
+  background: rgba(255,255,255,0.85);
+  border-bottom: 1.5px solid var(--mid);
+  padding-bottom: 1px;
+}
+input.editable[type="date"] { min-width: 130px; }
+
+.overdue-date {
+  color: var(--overdue); font-weight: 700;
+  background: #fde8e8; padding: 2px 6px;
+  border-radius: 4px; display: inline-block;
+}
+.due-soon-date {
+  color: var(--due-soon); font-weight: 600;
+}
+
+.done-check { width: 18px; height: 18px; cursor: pointer; accent-color: var(--success); }
+
+.empty-state {
+  text-align: center; padding: 48px; color: var(--muted);
+  font-style: italic; font-size: 14px;
+}
+.empty-state span { display: block; font-size: 32px; margin-bottom: 12px; }
+
+.no-task-hint { color: var(--muted); font-style: italic; font-size: 12px; }
+
+/* ── Loading skeleton ────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, #eaeff8 25%, #d8e2f4 50%, #eaeff8 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: 4px; height: 14px; display: inline-block;
+}
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+/* ── Modals ──────────────────────────────────────────────── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(10,20,50,0.55); z-index: 200;
+  align-items: center; justify-content: center;
+  backdrop-filter: blur(3px);
+}
+.modal-overlay.active { display: flex; }
+
+.modal {
+  background: var(--white); border-radius: 12px;
+  padding: 32px; width: 460px; max-width: 95vw;
+  box-shadow: 0 20px 60px rgba(10,20,50,0.25);
+  max-height: 92vh; overflow-y: auto;
+  animation: modalIn 0.2s ease;
+}
+@keyframes modalIn { from{opacity:0;transform:scale(0.96)translateY(8px)} to{opacity:1;transform:none} }
+
+.modal h3 {
+  font-family: 'Playfair Display', serif;
+  color: var(--navy); margin-bottom: 22px; font-size: 18px;
+  padding-bottom: 12px; border-bottom: 1.5px solid var(--light);
+}
+
+.form-section-label {
+  font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.7px; color: var(--muted);
+  margin: 20px 0 12px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--light);
+}
+
+.form-group { margin-bottom: 14px; }
+.form-group label {
+  display: block; font-weight: 600; color: var(--blue);
+  font-size: 12px; margin-bottom: 5px;
+}
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: 100%; padding: 9px 12px;
+  border: 1.5px solid #d0daea; border-radius: 6px;
+  font-family: 'Source Sans 3', sans-serif;
+  font-size: 13.5px; color: var(--text);
+  transition: border-color 0.2s;
+  outline: none;
+}
+.form-group input:focus,
+.form-group textarea:focus { border-color: var(--mid); }
+.form-group textarea { height: 72px; resize: vertical; }
+.optional { color: var(--muted); font-weight: 400; }
+
+.modal-footer {
+  display: flex; gap: 10px; justify-content: flex-end;
+  margin-top: 24px; padding-top: 16px;
+  border-top: 1px solid var(--light);
+}
+
+.btn-cancel { background: var(--lighter); color: var(--muted); border: 1px solid #d0daea; }
+.btn-cancel:hover { background: #e0e8f4; }
 </style>
 </head>
 <body>
 
+<!-- ── Header ──────────────────────────────────────────────── -->
 <header>
-  <div>
-    <h1>⚖ Case Management Tracker</h1>
-    <p>Click any cell to edit • Add tasks with "+ Task" • Check ✓ Done to complete</p>
+  <div class="header-left">
+    <div class="header-emblem">⚖</div>
+    <div>
+      <h1>Case Tracker</h1>
+      <p>Click any field to edit &nbsp;•&nbsp; Changes save automatically</p>
+    </div>
   </div>
-  <button class="btn btn-success" onclick="openAddClientModal()">+ New Client</button>
+  <div class="header-right">
+    <button class="btn btn-ghost btn-sm" onclick="showSetup()">⚙ Setup</button>
+    <button class="btn btn-gold" onclick="openAddClientModal()">+ New Client</button>
+  </div>
 </header>
 
+<!-- ── Toolbar ──────────────────────────────────────────────── -->
 <div class="toolbar">
-  <label>Sort by:</label>
-  <select id="sortSelect" onchange="sortTable()">
-    <option value="client">Client Name</option>
-    <option value="date">Due Date (Soonest First)</option>
-    <option value="date-desc">Due Date (Latest First)</option>
-  </select>
-  <label style="margin-left:16px;">Filter client:</label>
-  <input type="text" id="filterInput" placeholder="Type client name…" oninput="filterTable()" style="width:180px;">
-  <button class="btn btn-primary" onclick="clearFilter()">Clear</button>
-  <button class="btn btn-primary" style="margin-left:auto;" onclick="window.print()">🖨 Print</button>
+  <div class="toolbar-group">
+    <label>Sort by</label>
+    <select id="sortSelect" onchange="renderTable()">
+      <option value="client">Client Name</option>
+      <option value="date">Due Date — Soonest First</option>
+      <option value="date-desc">Due Date — Latest First</option>
+    </select>
+  </div>
+  <div class="toolbar-group">
+    <label>Filter</label>
+    <input type="text" id="filterInput" placeholder="Search client…" oninput="renderTable()" style="width:180px;">
+    <button class="btn btn-primary btn-sm" onclick="document.getElementById('filterInput').value='';renderTable()">✕</button>
+  </div>
+  <div class="toolbar-right">
+    <button class="btn btn-primary btn-sm" onclick="loadData()">↺ Refresh</button>
+    <button class="btn btn-primary btn-sm" onclick="window.print()">🖨 Print</button>
+  </div>
 </div>
 
+<!-- ── Status Bar ───────────────────────────────────────────── -->
+<div id="statusBar">
+  <div class="status-dot loading" id="statusDot"></div>
+  <span id="statusText">Initializing…</span>
+</div>
+
+<!-- ── Setup Banner ─────────────────────────────────────────── -->
+<div id="setupBanner">
+  <h3>⚙ Connect to Google Sheets</h3>
+  <p>To save your data, paste your <strong>Google Apps Script Web App URL</strong> below and click Save.<br>
+  Don't have one yet? Follow the setup instructions in your download package.</p>
+  <div class="setup-url-row">
+    <input type="text" id="scriptUrlInput" class="editable" style="border:1.5px solid #d0daea;border-radius:6px;padding:8px 12px;background:white;" placeholder="https://script.google.com/macros/s/…/exec">
+    <button class="btn btn-gold" onclick="saveScriptUrl()">Save & Connect</button>
+    <button class="btn btn-cancel btn-sm" onclick="hideSetup()">Cancel</button>
+  </div>
+</div>
+
+<!-- ── Table ────────────────────────────────────────────────── -->
 <div class="container">
-  <table id="caseTable">
-    <thead>
-      <tr class="section-header">
-        <th colspan="5" class="section-case">◀ CASE INFORMATION</th>
-        <th colspan="3" class="section-task">TO-DO ITEMS ▶</th>
-        <th class="section-act">ACTIONS</th>
-      </tr>
-      <tr class="col-headers">
-        <th class="th-case">Client Name</th>
-        <th class="th-case">Court</th>
-        <th class="th-case">Case Number</th>
-        <th class="th-case">Judge</th>
-        <th class="th-case">Case Notes</th>
-        <th class="th-task">Task</th>
-        <th class="th-task">Due Date</th>
-        <th class="th-task">Addl Details</th>
-        <th class="th-act">Done / Del</th>
-      </tr>
-    </thead>
-    <tbody id="tableBody"></tbody>
-  </table>
+  <div class="table-wrap">
+    <table id="caseTable">
+      <thead>
+        <tr class="thead-section">
+          <th colspan="5" class="th-case-section">◀ CASE INFORMATION</th>
+          <th colspan="3" class="th-task-section">TO-DO TASKS ▶</th>
+          <th class="th-act-section">ACTIONS</th>
+        </tr>
+        <tr class="thead-cols">
+          <th class="th-case">Client Name</th>
+          <th class="th-case">Court</th>
+          <th class="th-case">Case No.</th>
+          <th class="th-case">Judge <span style="opacity:0.55;font-weight:400">(opt.)</span></th>
+          <th class="th-case">Case Notes</th>
+          <th class="th-task">Task</th>
+          <th class="th-task">Due Date</th>
+          <th class="th-task">Addl Details</th>
+          <th class="th-act">Done / Remove</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
 </div>
 
-<!-- Add Client Modal -->
+<!-- ── Add Client Modal ──────────────────────────────────────── -->
 <div class="modal-overlay" id="clientModal">
   <div class="modal">
-    <h3>➕ New Client</h3>
+    <h3>New Client</h3>
+    <div class="form-section-label">Case Information</div>
     <div class="form-group"><label>Client Name *</label><input type="text" id="nc_name" placeholder="e.g. Smith, John"></div>
     <div class="form-group"><label>Court *</label><input type="text" id="nc_court" placeholder="e.g. Circuit Court"></div>
     <div class="form-group"><label>Case Number</label><input type="text" id="nc_casenum" placeholder="e.g. 2025-CV-0001"></div>
-    <div class="form-group"><label>Judge</label><input type="text" id="nc_judge" placeholder="e.g. Hon. J. Smith"></div>
+    <div class="form-group"><label>Judge <span class="optional">(optional)</span></label><input type="text" id="nc_judge" placeholder="e.g. Hon. J. Smith"></div>
     <div class="form-group"><label>Case Notes</label><textarea id="nc_notes" placeholder="Brief case summary…"></textarea></div>
-    <hr style="margin:14px 0; border-color:#e0e8ff;">
-    <p style="font-size:12px;color:#666;margin-bottom:12px;">Add first task (optional):</p>
+    <div class="form-section-label">First Task <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></div>
     <div class="form-group"><label>Task</label><input type="text" id="nc_task" placeholder="e.g. Draft complaint"></div>
     <div class="form-group"><label>Due Date</label><input type="date" id="nc_due"></div>
-    <div class="form-group"><label>Addl Details</label><input type="text" id="nc_details" placeholder="Additional notes…"></div>
-    <div class="modal-btns">
-      <button class="btn" style="background:#eee;" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-success" onclick="addClient()">Add Client</button>
+    <div class="form-group"><label>Additional Details</label><input type="text" id="nc_details" placeholder="Any extra notes…"></div>
+    <div class="modal-footer">
+      <button class="btn btn-cancel" onclick="closeModal('clientModal')">Cancel</button>
+      <button class="btn btn-gold" id="addClientBtn" onclick="addClient()">Add Client</button>
     </div>
   </div>
 </div>
 
-<!-- Add Task Modal -->
+<!-- ── Add Task Modal ────────────────────────────────────────── -->
 <div class="modal-overlay" id="taskModal">
   <div class="modal">
-    <h3 id="taskModalTitle">➕ New Task</h3>
+    <h3 id="taskModalTitle">New Task</h3>
     <div class="form-group"><label>Task *</label><input type="text" id="nt_task" placeholder="Describe the task…"></div>
     <div class="form-group"><label>Due Date</label><input type="date" id="nt_due"></div>
     <div class="form-group"><label>Additional Details</label><textarea id="nt_details" placeholder="Any extra notes…"></textarea></div>
-    <div class="modal-btns">
-      <button class="btn" style="background:#eee;" onclick="closeTaskModal()">Cancel</button>
-      <button class="btn btn-success" onclick="saveNewTask()">Add Task</button>
+    <div class="modal-footer">
+      <button class="btn btn-cancel" onclick="closeModal('taskModal')">Cancel</button>
+      <button class="btn btn-gold" id="addTaskBtn" onclick="saveNewTask()">Add Task</button>
     </div>
   </div>
 </div>
 
 <script>
-let cases = [
-  {
-    client: "Smith, John", court: "Circuit Court", caseNum: "2024-CV-0042",
-    judge: "Hon. M. Carter", notes: "PI case; liability clear",
-    tasks: [
-      { id: 1, task: "Draft demand letter", due: "2026-03-10", details: "Include all medical bills", done: false },
-      { id: 2, task: "Request medical records", due: "2026-03-05", details: "St. Mary's Hospital", done: false },
-    ]
-  },
-  {
-    client: "Garcia, Maria", court: "Family Court", caseNum: "2025-DR-0118",
-    judge: "Hon. T. Williams", notes: "Divorce; custody dispute pending",
-    tasks: [
-      { id: 3, task: "File motion for discovery", due: "2026-03-15", details: "Financial records", done: false },
-      { id: 4, task: "Prepare parenting plan draft", due: "2026-04-01", details: "", done: false },
-    ]
-  },
-  {
-    client: "Johnson LLC", court: "Federal District", caseNum: "1:25-cv-00321",
-    judge: "Hon. R. Patel", notes: "Contract dispute; $2.4M claim",
-    tasks: [
-      { id: 5, task: "Review deposition transcripts", due: "2026-03-20", details: "Prioritize CFO depo", done: false },
-      { id: 6, task: "Respond to summary judgment", due: "2026-03-28", details: "Check local rules", done: false },
-    ]
-  },
-  {
-    client: "Davis, Robert", court: "Probate Court", caseNum: "2025-PB-0055",
-    judge: "Hon. S. Lee", notes: "Estate administration",
-    tasks: [
-      { id: 7, task: "File inventory with court", due: "2026-04-15", details: "Use Form P-12", done: false },
-    ]
+// ── Config ────────────────────────────────────────────────────
+const STORAGE_KEY = "caseTracker_scriptUrl";
+let SCRIPT_URL = localStorage.getItem(STORAGE_KEY) || "";
+
+// ── State ─────────────────────────────────────────────────────
+let cases = [];   // [{ caseId, client, court, caseNum, judge, notes }]
+let tasks = [];   // [{ taskId, caseId, task, due, details, done }]
+let pendingCaseId = null;
+let saving = false;
+
+// ── Status helpers ────────────────────────────────────────────
+function setStatus(msg, type="ok") {
+  document.getElementById("statusText").textContent = msg;
+  const dot = document.getElementById("statusDot");
+  dot.className = "status-dot" + (type==="loading"?" loading": type==="error"?" error":"");
+}
+
+// ── Script URL setup ──────────────────────────────────────────
+function showSetup() {
+  document.getElementById("setupBanner").style.display = "block";
+  document.getElementById("scriptUrlInput").value = SCRIPT_URL;
+}
+function hideSetup() {
+  document.getElementById("setupBanner").style.display = "none";
+}
+function saveScriptUrl() {
+  const val = document.getElementById("scriptUrlInput").value.trim();
+  if (!val.startsWith("https://script.google.com")) {
+    alert("That doesn't look like a valid Apps Script URL. It should start with https://script.google.com/macros/s/…");
+    return;
   }
-];
+  SCRIPT_URL = val;
+  localStorage.setItem(STORAGE_KEY, SCRIPT_URL);
+  hideSetup();
+  loadData();
+}
 
-let nextId = 100;
-let pendingTaskClient = null;
-let currentFilter = "";
+// ── API calls ─────────────────────────────────────────────────
+async function api(action, body={}) {
+  if (!SCRIPT_URL) throw new Error("NO_URL");
+  const url = SCRIPT_URL + "?action=" + action;
+  const res = await fetch(url, {
+    method: "POST",
+    body: JSON.stringify({ action, ...body }),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
+}
 
+// ── Load ──────────────────────────────────────────────────────
+async function loadData() {
+  if (!SCRIPT_URL) {
+    setStatus("Not connected — click ⚙ Setup to connect your Google Sheet.", "error");
+    showSetup();
+    renderTable();
+    return;
+  }
+  setStatus("Loading…", "loading");
+  try {
+    const [casesData, tasksData] = await Promise.all([api("getCases"), api("getTasks")]);
+    cases = casesData;
+    tasks = tasksData;
+    setStatus(`Loaded ${cases.length} case${cases.length!==1?"s":""}, ${tasks.length} task${tasks.length!==1?"s":""}  •  Last refreshed ${new Date().toLocaleTimeString()}`);
+    renderTable();
+  } catch(e) {
+    if (e.message === "NO_URL") {
+      setStatus("Not connected — click ⚙ Setup to connect your Google Sheet.", "error");
+      showSetup();
+    } else {
+      setStatus("Error loading data: " + e.message, "error");
+    }
+    renderTable();
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────
 function getToday() {
   return new Date().toISOString().split("T")[0];
 }
-
 function dueDateClass(due) {
   if (!due) return "";
   const today = new Date(); today.setHours(0,0,0,0);
-  const d = new Date(due);
-  const diff = (d - today) / (1000*60*60*24);
+  const d = new Date(due + "T00:00:00");
+  const diff = (d - today) / 864e5;
   if (diff < 0) return "overdue";
   if (diff <= 7) return "due-soon";
   return "";
 }
-
-function formatDate(d) {
+function formatDateDisplay(d) {
   if (!d) return "";
   const [y,m,day] = d.split("-");
+  if (!y||!m||!day) return d;
   return `${m}/${day}/${y}`;
 }
+function esc(s) {
+  return String(s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/'/g,"&#39;").replace(/</g,"&lt;");
+}
 
+// ── Render ────────────────────────────────────────────────────
 function renderTable() {
-  const tbody = document.getElementById("tableBody");
-  const sortVal = document.getElementById("sortSelect").value;
+  const tbody  = document.getElementById("tableBody");
+  const sort   = document.getElementById("sortSelect").value;
+  const filter = document.getElementById("filterInput").value.toLowerCase();
 
-  // Flatten all tasks with case info
+  // Flatten: one row per task; if client has no tasks, one row still
   let rows = [];
   cases.forEach(c => {
-    if (c.tasks.length === 0) {
+    const myTasks = tasks.filter(t => t.caseId === c.caseId);
+    if (myTasks.length === 0) {
       rows.push({ ...c, taskObj: null });
     } else {
-      c.tasks.forEach(t => rows.push({ ...c, taskObj: t }));
+      myTasks.forEach(t => rows.push({ ...c, taskObj: t }));
     }
   });
 
   // Filter
-  if (currentFilter) {
-    rows = rows.filter(r => r.client.toLowerCase().includes(currentFilter.toLowerCase()));
-  }
+  if (filter) rows = rows.filter(r => r.client.toLowerCase().includes(filter));
 
   // Sort
-  if (sortVal === "client") {
+  if (sort === "client") {
     rows.sort((a,b) => {
       const cn = a.client.localeCompare(b.client);
-      if (cn !== 0) return cn;
-      const da = a.taskObj?.due || "9999";
-      const db = b.taskObj?.due || "9999";
-      return da.localeCompare(db);
+      if (cn) return cn;
+      return (a.taskObj?.due||"9999").localeCompare(b.taskObj?.due||"9999");
     });
-  } else if (sortVal === "date" || sortVal === "date-desc") {
+  } else {
+    const asc = sort === "date";
     rows.sort((a,b) => {
-      const da = a.taskObj?.due || "9999";
-      const db = b.taskObj?.due || "9999";
-      return sortVal === "date" ? da.localeCompare(db) : db.localeCompare(da);
+      const da = a.taskObj?.due||"9999", db = b.taskObj?.due||"9999";
+      return asc ? da.localeCompare(db) : db.localeCompare(da);
     });
   }
 
-  // Assign alternating colors per client (in current sorted order)
-  const clientOrder = {};
-  let colorIdx = 0;
-  rows.forEach(r => {
-    if (!(r.client in clientOrder)) {
-      clientOrder[r.client] = colorIdx++ % 2;
-    }
-  });
+  // Assign alternating colors per client
+  const colorMap = {};
+  let ci = 0;
+  rows.forEach(r => { if (!(r.caseId in colorMap)) colorMap[r.caseId] = ci++ % 2; });
 
   tbody.innerHTML = "";
-  rows.forEach((r, idx) => {
-    const t = r.taskObj;
-    const colorClass = clientOrder[r.client] === 0 ? "client-row-a" : "client-row-b";
-    const doneClass = t?.done ? "task-done" : "";
-    const tr = document.createElement("tr");
-    tr.className = `${colorClass} ${doneClass}`;
 
-    const dc = t ? dueDateClass(t.due) : "";
-    const clientIdx = cases.findIndex(c => c.client === r.client);
+  if (rows.length === 0) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="9" class="empty-state"><span>⚖</span>${
+      !SCRIPT_URL
+        ? "Connect your Google Sheet via ⚙ Setup, then add your first client."
+        : filter
+          ? "No clients match your search."
+          : "No cases yet — click + New Client to get started."
+    }</td>`;
+    tbody.appendChild(tr);
+    return;
+  }
+
+  rows.forEach(r => {
+    const alt   = colorMap[r.caseId];
+    const t     = r.taskObj;
+    const done  = t?.done === "true" || t?.done === true;
+    const dc    = t ? dueDateClass(t.due) : "";
+
+    const tr = document.createElement("tr");
+    if (done) tr.className = "task-done";
+
+    const caseClass = alt ? "td-case-b" : "td-case-a";
+    const taskClass = alt ? "td-task-b" : "td-task-a";
+
+    let dueCellInner = "";
+    if (t) {
+      if (dc === "overdue") {
+        dueCellInner = `<span class="overdue-date">${formatDateDisplay(t.due)}</span>`;
+      } else if (dc === "due-soon") {
+        dueCellInner = `<input class="editable due-soon-date" type="date" value="${esc(t.due)}" onchange="patchTask('${esc(t.taskId)}','due',this.value)">`;
+      } else {
+        dueCellInner = `<input class="editable" type="date" value="${esc(t.due)}" onchange="patchTask('${esc(t.taskId)}','due',this.value)">`;
+      }
+    }
 
     tr.innerHTML = `
-      <td class="case-col client-name">
-        <input class="editable" value="${esc(r.client)}" onchange="updateCase('${esc(r.client)}','client',this.value)">
+      <td class="${caseClass} client-name-cell">
+        <input class="editable" value="${esc(r.client)}" onchange="patchCase('${esc(r.caseId)}','client',this.value)">
       </td>
-      <td class="case-col">
-        <input class="editable" value="${esc(r.court)}" onchange="updateCase('${esc(r.client)}','court',this.value)">
+      <td class="${caseClass}">
+        <input class="editable" value="${esc(r.court)}" onchange="patchCase('${esc(r.caseId)}','court',this.value)">
       </td>
-      <td class="case-col">
-        <input class="editable" value="${esc(r.caseNum)}" onchange="updateCase('${esc(r.client)}','caseNum',this.value)">
+      <td class="${caseClass}">
+        <input class="editable" value="${esc(r.caseNum)}" onchange="patchCase('${esc(r.caseId)}','caseNum',this.value)">
       </td>
-      <td class="case-col">
-        <input class="editable" value="${esc(r.judge)}" onchange="updateCase('${esc(r.client)}','judge',this.value)">
+      <td class="${caseClass}">
+        <input class="editable" value="${esc(r.judge)}" placeholder="—" onchange="patchCase('${esc(r.caseId)}','judge',this.value)">
       </td>
-      <td class="case-col">
-        <input class="editable" value="${esc(r.notes)}" onchange="updateCase('${esc(r.client)}','notes',this.value)">
+      <td class="${caseClass}">
+        <input class="editable" value="${esc(r.notes)}" onchange="patchCase('${esc(r.caseId)}','notes',this.value)">
       </td>
-      <td class="task-col">
-        ${t ? `<input class="editable" value="${esc(t.task)}" onchange="updateTask('${esc(r.client)}',${t.id},'task',this.value)">` : `<span style="color:#aaa;font-style:italic;">No tasks yet</span>`}
+      <td class="${taskClass}">
+        ${t
+          ? `<input class="editable" value="${esc(t.task)}" onchange="patchTask('${esc(t.taskId)}','task',this.value)">`
+          : `<span class="no-task-hint">No tasks yet</span>`}
       </td>
-      <td class="task-col" style="text-align:center;">
-        ${t ? `<input class="editable ${dc}" type="date" value="${t.due||''}" onchange="updateTask('${esc(r.client)}',${t.id},'due',this.value)" style="font-size:12px;">` : ''}
+      <td class="${taskClass}" style="text-align:center;">
+        ${dueCellInner}
       </td>
-      <td class="task-col">
-        ${t ? `<input class="editable" value="${esc(t.details)}" onchange="updateTask('${esc(r.client)}',${t.id},'details',this.value)">` : ''}
+      <td class="${taskClass}">
+        ${t ? `<input class="editable" value="${esc(t.details)}" onchange="patchTask('${esc(t.taskId)}','details',this.value)">` : ""}
       </td>
-      <td class="act-col" style="white-space:nowrap; text-align:center;">
-        ${t ? `<input type="checkbox" class="done-check" ${t.done?'checked':''} onchange="toggleDone('${esc(r.client)}',${t.id},this.checked)" title="Mark done"> ` : ''}
-        <button class="btn btn-add-task" onclick="openAddTaskModal('${esc(r.client)}')">+ Task</button>
-        ${t ? ` <button class="btn btn-danger" onclick="deleteTask('${esc(r.client)}',${t.id})">✕</button>` : ''}
-        ${!t ? ` <button class="btn btn-danger" onclick="deleteClient('${esc(r.client)}')">Remove</button>` : ''}
+      <td class="td-act">
+        ${t ? `<input type="checkbox" class="done-check" title="Mark complete" ${done?"checked":""} onchange="toggleDone('${esc(t.taskId)}',this.checked)"> ` : ""}
+        <button class="btn btn-add-task" onclick="openAddTaskModal('${esc(r.caseId)}','${esc(r.client)}')">+ Task</button>
+        ${t ? ` <button class="btn btn-danger btn-sm" onclick="removeTask('${esc(t.taskId)}')">✕</button>` : ""}
+        ${!t ? ` <button class="btn btn-danger btn-sm" onclick="removeClient('${esc(r.caseId)}','${esc(r.client)}')">Remove</button>` : ""}
       </td>
     `;
     tbody.appendChild(tr);
   });
-
-  if (rows.length === 0) {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td colspan="9" class="empty-state">No cases found. Click "+ New Client" to get started.</td>`;
-    tbody.appendChild(tr);
-  }
 }
 
-function esc(s) {
-  return (s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/'/g,"&#39;").replace(/</g,"&lt;");
+// ── Patch helpers ─────────────────────────────────────────────
+let patchDebounce = {};
+
+function patchCase(caseId, field, value) {
+  const c = cases.find(x => x.caseId === caseId);
+  if (!c) return;
+  c[field] = value;
+  clearTimeout(patchDebounce["case_"+caseId]);
+  patchDebounce["case_"+caseId] = setTimeout(async () => {
+    setStatus("Saving…", "loading");
+    try {
+      await api("upsertCase", { ...c });
+      setStatus("Saved ✓  " + new Date().toLocaleTimeString());
+    } catch(e) { setStatus("Save failed: " + e.message, "error"); }
+  }, 800);
 }
 
-function updateCase(clientName, field, value) {
-  const c = cases.find(c => c.client === clientName);
-  if (c) {
-    if (field === 'client') {
-      // Update client name across all references
-      const oldName = c.client;
-      c[field] = value;
-    } else {
-      c[field] = value;
-    }
-  }
-}
-
-function updateTask(clientName, taskId, field, value) {
-  const c = cases.find(c => c.client === clientName);
-  if (c) {
-    const t = c.tasks.find(t => t.id === taskId);
-    if (t) t[field] = value;
-  }
-}
-
-function toggleDone(clientName, taskId, checked) {
-  const c = cases.find(c => c.client === clientName);
-  if (c) {
-    const t = c.tasks.find(t => t.id === taskId);
-    if (t) {
-      t.done = checked;
-      if (checked) {
-        setTimeout(() => {
-          if (confirm(`Mark "${t.task}" as complete and remove it?`)) {
-            c.tasks = c.tasks.filter(x => x.id !== taskId);
-            renderTable();
-          } else {
-            t.done = false;
-            renderTable();
-          }
-        }, 200);
-        return;
-      }
-    }
-  }
+function patchTask(taskId, field, value) {
+  const t = tasks.find(x => x.taskId === taskId);
+  if (!t) return;
+  t[field] = value;
   renderTable();
+  clearTimeout(patchDebounce["task_"+taskId]);
+  patchDebounce["task_"+taskId] = setTimeout(async () => {
+    setStatus("Saving…", "loading");
+    try {
+      await api("updateTask", { taskId, [field]: value });
+      setStatus("Saved ✓  " + new Date().toLocaleTimeString());
+    } catch(e) { setStatus("Save failed: " + e.message, "error"); }
+  }, 800);
 }
 
-function deleteTask(clientName, taskId) {
-  const c = cases.find(c => c.client === clientName);
-  if (c && confirm("Delete this task?")) {
-    c.tasks = c.tasks.filter(t => t.id !== taskId);
-    renderTable();
+// ── Toggle done ───────────────────────────────────────────────
+async function toggleDone(taskId, checked) {
+  if (checked) {
+    setTimeout(async () => {
+      if (confirm("Mark this task complete and remove it?")) {
+        await removeTask(taskId);
+      } else {
+        const t = tasks.find(x => x.taskId === taskId);
+        if (t) t.done = "false";
+        renderTable();
+      }
+    }, 150);
+  } else {
+    const t = tasks.find(x => x.taskId === taskId);
+    if (t) { t.done = "false"; renderTable(); }
+    await api("updateTask", { taskId, done: false });
   }
 }
 
-function deleteClient(clientName) {
-  if (confirm(`Remove ${clientName} and all their tasks?`)) {
-    cases = cases.filter(c => c.client !== clientName);
-    renderTable();
-  }
+// ── Remove task ───────────────────────────────────────────────
+async function removeTask(taskId) {
+  tasks = tasks.filter(x => x.taskId !== taskId);
+  renderTable();
+  setStatus("Deleting…", "loading");
+  try {
+    await api("deleteTask", { taskId });
+    setStatus("Task removed ✓  " + new Date().toLocaleTimeString());
+  } catch(e) { setStatus("Delete failed: " + e.message, "error"); }
 }
 
-// Add Client Modal
+// ── Remove client ─────────────────────────────────────────────
+async function removeClient(caseId, clientName) {
+  if (!confirm(`Remove ${clientName} and all their tasks?`)) return;
+  cases = cases.filter(x => x.caseId !== caseId);
+  tasks = tasks.filter(x => x.caseId !== caseId);
+  renderTable();
+  setStatus("Deleting…", "loading");
+  try {
+    await api("deleteCase", { caseId });
+    setStatus("Client removed ✓  " + new Date().toLocaleTimeString());
+  } catch(e) { setStatus("Delete failed: " + e.message, "error"); }
+}
+
+// ── Add client modal ──────────────────────────────────────────
 function openAddClientModal() {
-  ["nc_name","nc_court","nc_casenum","nc_judge","nc_notes","nc_task","nc_due","nc_details"].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = "";
-  });
+  ["nc_name","nc_court","nc_casenum","nc_judge","nc_notes","nc_task","nc_due","nc_details"]
+    .forEach(id => document.getElementById(id).value = "");
   document.getElementById("clientModal").classList.add("active");
-  document.getElementById("nc_name").focus();
+  setTimeout(() => document.getElementById("nc_name").focus(), 50);
 }
 
-function closeModal() {
-  document.getElementById("clientModal").classList.remove("active");
-}
-
-function addClient() {
-  const name = document.getElementById("nc_name").value.trim();
+async function addClient() {
+  const name  = document.getElementById("nc_name").value.trim();
   const court = document.getElementById("nc_court").value.trim();
   if (!name || !court) { alert("Client Name and Court are required."); return; }
 
-  const newCase = {
-    client: name,
-    court: court,
-    caseNum: document.getElementById("nc_casenum").value.trim(),
-    judge: document.getElementById("nc_judge").value.trim(),
-    notes: document.getElementById("nc_notes").value.trim(),
-    tasks: []
-  };
+  const btn = document.getElementById("addClientBtn");
+  btn.textContent = "Saving…"; btn.disabled = true;
 
-  const task = document.getElementById("nc_task").value.trim();
-  if (task) {
-    newCase.tasks.push({
-      id: nextId++,
-      task,
-      due: document.getElementById("nc_due").value,
-      details: document.getElementById("nc_details").value.trim(),
-      done: false
-    });
+  try {
+    const casePayload = {
+      client: name, court,
+      caseNum: document.getElementById("nc_casenum").value.trim(),
+      judge:   document.getElementById("nc_judge").value.trim(),
+      notes:   document.getElementById("nc_notes").value.trim(),
+    };
+
+    const caseRes = await api("upsertCase", casePayload);
+    const caseId  = caseRes.caseId;
+    cases.push({ caseId, ...casePayload });
+
+    const taskText = document.getElementById("nc_task").value.trim();
+    if (taskText) {
+      const taskPayload = {
+        caseId,
+        task:    taskText,
+        due:     document.getElementById("nc_due").value,
+        details: document.getElementById("nc_details").value.trim(),
+      };
+      const taskRes = await api("addTask", taskPayload);
+      tasks.push({ taskId: taskRes.taskId, done: "false", ...taskPayload });
+    }
+
+    closeModal("clientModal");
+    renderTable();
+    setStatus("Client added ✓  " + new Date().toLocaleTimeString());
+  } catch(e) {
+    alert("Error saving: " + e.message);
+  } finally {
+    btn.textContent = "Add Client"; btn.disabled = false;
   }
-
-  cases.push(newCase);
-  closeModal();
-  renderTable();
 }
 
-// Add Task Modal
-function openAddTaskModal(clientName) {
-  pendingTaskClient = clientName;
-  document.getElementById("taskModalTitle").textContent = `➕ New Task — ${clientName}`;
-  ["nt_task","nt_due","nt_details"].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = "";
-  });
+// ── Add task modal ────────────────────────────────────────────
+function openAddTaskModal(caseId, clientName) {
+  pendingCaseId = caseId;
+  document.getElementById("taskModalTitle").textContent = "New Task — " + clientName;
+  ["nt_task","nt_due","nt_details"].forEach(id => document.getElementById(id).value = "");
   document.getElementById("taskModal").classList.add("active");
-  document.getElementById("nt_task").focus();
+  setTimeout(() => document.getElementById("nt_task").focus(), 50);
 }
 
-function closeTaskModal() {
-  document.getElementById("taskModal").classList.remove("active");
-  pendingTaskClient = null;
-}
-
-function saveNewTask() {
+async function saveNewTask() {
   const task = document.getElementById("nt_task").value.trim();
   if (!task) { alert("Please enter a task description."); return; }
-  const c = cases.find(c => c.client === pendingTaskClient);
-  if (c) {
-    c.tasks.push({
-      id: nextId++,
+
+  const btn = document.getElementById("addTaskBtn");
+  btn.textContent = "Saving…"; btn.disabled = true;
+
+  try {
+    const payload = {
+      caseId:  pendingCaseId,
       task,
-      due: document.getElementById("nt_due").value,
+      due:     document.getElementById("nt_due").value,
       details: document.getElementById("nt_details").value.trim(),
-      done: false
-    });
+    };
+    const res = await api("addTask", payload);
+    tasks.push({ taskId: res.taskId, done: "false", ...payload });
+    closeModal("taskModal");
+    renderTable();
+    setStatus("Task added ✓  " + new Date().toLocaleTimeString());
+  } catch(e) {
+    alert("Error saving: " + e.message);
+  } finally {
+    btn.textContent = "Add Task"; btn.disabled = false;
   }
-  closeTaskModal();
-  renderTable();
 }
 
-function sortTable() { renderTable(); }
-
-function filterTable() {
-  currentFilter = document.getElementById("filterInput").value;
-  renderTable();
+// ── Modal helpers ─────────────────────────────────────────────
+function closeModal(id) {
+  document.getElementById(id).classList.remove("active");
 }
-
-function clearFilter() {
-  document.getElementById("filterInput").value = "";
-  currentFilter = "";
-  renderTable();
-}
-
-// Close modals on overlay click
-document.getElementById("clientModal").addEventListener("click", function(e) {
-  if (e.target === this) closeModal();
-});
-document.getElementById("taskModal").addEventListener("click", function(e) {
-  if (e.target === this) closeTaskModal();
+document.querySelectorAll(".modal-overlay").forEach(el => {
+  el.addEventListener("click", e => { if (e.target === el) el.classList.remove("active"); });
 });
 
-renderTable();
+// ── Init ──────────────────────────────────────────────────────
+loadData();
 </script>
 </body>
 </html>
