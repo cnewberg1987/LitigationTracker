@@ -363,15 +363,12 @@ input.editable[type="date"] { min-width: 130px; }
     <table id="caseTable">
       <thead>
         <tr class="thead-section">
-          <th colspan="5" class="th-case-section">◀ CASE INFORMATION</th>
+          <th colspan="2" class="th-case-section">◀ CASE INFORMATION</th>
           <th colspan="3" class="th-task-section">TO-DO TASKS ▶</th>
           <th class="th-act-section">ACTIONS</th>
         </tr>
         <tr class="thead-cols">
           <th class="th-case">Client Name</th>
-          <th class="th-case">Court</th>
-          <th class="th-case">Case No.</th>
-          <th class="th-case">Judge <span style="opacity:0.55;font-weight:400">(opt.)</span></th>
           <th class="th-case">Case Notes</th>
           <th class="th-task">Task</th>
           <th class="th-task">Due Date</th>
@@ -390,9 +387,6 @@ input.editable[type="date"] { min-width: 130px; }
     <h3>New Client</h3>
     <div class="form-section-label">Case Information</div>
     <div class="form-group"><label>Client Name *</label><input type="text" id="nc_name" placeholder="e.g. Smith, John"></div>
-    <div class="form-group"><label>Court *</label><input type="text" id="nc_court" placeholder="e.g. Circuit Court"></div>
-    <div class="form-group"><label>Case Number</label><input type="text" id="nc_casenum" placeholder="e.g. 2025-CV-0001"></div>
-    <div class="form-group"><label>Judge <span class="optional">(optional)</span></label><input type="text" id="nc_judge" placeholder="e.g. Hon. J. Smith"></div>
     <div class="form-group"><label>Case Notes</label><textarea id="nc_notes" placeholder="Brief case summary…"></textarea></div>
     <div class="form-section-label">First Task <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></div>
     <div class="form-group"><label>Task</label><input type="text" id="nc_task" placeholder="e.g. Draft complaint"></div>
@@ -482,7 +476,8 @@ async function loadData() {
   try {
     const [casesData, tasksData] = await Promise.all([api("getCases"), api("getTasks")]);
     cases = casesData;
-    tasks = tasksData;
+    // Normalize all due dates coming back from the sheet
+    tasks = tasksData.map(t => ({ ...t, due: normalizeDate(t.due) }));
     setStatus(`Loaded ${cases.length} case${cases.length!==1?"s":""}, ${tasks.length} task${tasks.length!==1?"s":""}  •  Last refreshed ${new Date().toLocaleTimeString()}`);
     renderTable();
   } catch(e) {
@@ -602,15 +597,6 @@ function renderTable() {
         <input class="editable" value="${esc(r.client)}" onchange="patchCase('${esc(r.caseId)}','client',this.value)">
       </td>
       <td class="${caseClass}">
-        <input class="editable" value="${esc(r.court)}" onchange="patchCase('${esc(r.caseId)}','court',this.value)">
-      </td>
-      <td class="${caseClass}">
-        <input class="editable" value="${esc(r.caseNum)}" onchange="patchCase('${esc(r.caseId)}','caseNum',this.value)">
-      </td>
-      <td class="${caseClass}">
-        <input class="editable" value="${esc(r.judge)}" placeholder="—" onchange="patchCase('${esc(r.caseId)}','judge',this.value)">
-      </td>
-      <td class="${caseClass}">
         <input class="editable" value="${esc(r.notes)}" onchange="patchCase('${esc(r.caseId)}','notes',this.value)">
       </td>
       <td class="${taskClass}">
@@ -635,6 +621,24 @@ function renderTable() {
   });
 }
 
+// ── Normalize date to YYYY-MM-DD string ──────────────────────
+function normalizeDate(val) {
+  if (!val) return "";
+  // Already in YYYY-MM-DD format
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(val))) return String(val);
+  // Try parsing as a date (handles Date objects and other formats)
+  try {
+    const d = new Date(val);
+    if (!isNaN(d.getTime())) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    }
+  } catch(e) {}
+  return String(val);
+}
+
 // ── Patch helpers ─────────────────────────────────────────────
 let patchDebounce = {};
 
@@ -655,13 +659,15 @@ function patchCase(caseId, field, value) {
 function patchTask(taskId, field, value) {
   const t = tasks.find(x => x.taskId === taskId);
   if (!t) return;
-  t[field] = value;
+  // Normalize dates before saving
+  const saveValue = field === "due" ? normalizeDate(value) : value;
+  t[field] = saveValue;
   renderTable();
   clearTimeout(patchDebounce["task_"+taskId]);
   patchDebounce["task_"+taskId] = setTimeout(async () => {
     setStatus("Saving…", "loading");
     try {
-      await api("updateTask", { taskId, [field]: value });
+      await api("updateTask", { taskId, [field]: saveValue });
       setStatus("Saved ✓  " + new Date().toLocaleTimeString());
     } catch(e) { setStatus("Save failed: " + e.message, "error"); }
   }, 800);
@@ -721,7 +727,7 @@ async function removeClient(caseId, clientName) {
 
 // ── Add client modal ──────────────────────────────────────────
 function openAddClientModal() {
-  ["nc_name","nc_court","nc_casenum","nc_judge","nc_notes","nc_task","nc_due","nc_details"]
+  ["nc_name","nc_notes","nc_task","nc_due","nc_details"]
     .forEach(id => document.getElementById(id).value = "");
   document.getElementById("clientModal").classList.add("active");
   setTimeout(() => document.getElementById("nc_name").focus(), 50);
@@ -729,17 +735,15 @@ function openAddClientModal() {
 
 async function addClient() {
   const name  = document.getElementById("nc_name").value.trim();
-  const court = document.getElementById("nc_court").value.trim();
-  if (!name || !court) { alert("Client Name and Court are required."); return; }
+  if (!name) { alert("Client Name is required."); return; }
 
   const btn = document.getElementById("addClientBtn");
   btn.textContent = "Saving…"; btn.disabled = true;
 
   try {
     const casePayload = {
-      client: name, court,
-      caseNum: document.getElementById("nc_casenum").value.trim(),
-      judge:   document.getElementById("nc_judge").value.trim(),
+      client: name,
+      court: "", caseNum: "", judge: "",
       notes:   document.getElementById("nc_notes").value.trim(),
     };
 
@@ -752,7 +756,7 @@ async function addClient() {
       const taskPayload = {
         caseId,
         task:    taskText,
-        due:     document.getElementById("nc_due").value,
+        due:     normalizeDate(document.getElementById("nc_due").value),
         details: document.getElementById("nc_details").value.trim(),
       };
       const taskRes = await api("addTask", taskPayload);
@@ -789,7 +793,7 @@ async function saveNewTask() {
     const payload = {
       caseId:  pendingCaseId,
       task,
-      due:     document.getElementById("nt_due").value,
+      due:     normalizeDate(document.getElementById("nt_due").value),
       details: document.getElementById("nt_details").value.trim(),
     };
     const res = await api("addTask", payload);
