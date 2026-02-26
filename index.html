@@ -212,14 +212,24 @@ input.editable:focus {
 }
 input.editable[type="date"] { min-width: 130px; }
 
-.overdue-date {
-  color: var(--overdue); font-weight: 700;
-  background: #fde8e8; padding: 2px 6px;
-  border-radius: 4px; display: inline-block;
+/* ── Due date urgency — task columns only ── */
+tr.due-today .td-task-a,
+tr.due-today .td-task-b  { background: rgba(220,38,38,0.22) !important; }
+
+tr.due-urgent .td-task-a,
+tr.due-urgent .td-task-b { background: rgba(220,38,38,0.12) !important; }
+
+tr.due-soon .td-task-a,
+tr.due-soon .td-task-b   { background: rgba(220,38,38,0.06) !important; }
+
+/* Due date badge inside the cell */
+.due-badge {
+  display: inline-block; border-radius: 4px;
+  padding: 2px 7px; font-weight: 700; font-size: 12.5px;
 }
-.due-soon-date {
-  color: var(--due-soon); font-weight: 600;
-}
+.due-badge-today  { color: #991b1b; background: rgba(220,38,38,0.15); border: 1px solid rgba(220,38,38,0.35); }
+.due-badge-urgent { color: #b91c1c; background: rgba(220,38,38,0.09); border: 1px solid rgba(220,38,38,0.22); }
+.due-badge-soon   { color: #c2410c; background: rgba(220,38,38,0.05); border: 1px solid rgba(220,38,38,0.15); }
 
 .done-check { width: 18px; height: 18px; cursor: pointer; accent-color: var(--success); }
 
@@ -495,13 +505,28 @@ async function loadData() {
 function getToday() {
   return new Date().toISOString().split("T")[0];
 }
+function countBusinessDays(from, to) {
+  let count = 0;
+  const cur = new Date(from);
+  cur.setDate(cur.getDate() + 1); // start counting from tomorrow
+  while (cur <= to) {
+    const day = cur.getDay();
+    if (day !== 0 && day !== 6) count++;
+    cur.setDate(cur.getDate() + 1);
+  }
+  return count;
+}
 function dueDateClass(due) {
   if (!due) return "";
   const today = new Date(); today.setHours(0,0,0,0);
   const d = new Date(due + "T00:00:00");
-  const diff = (d - today) / 864e5;
-  if (diff < 0) return "overdue";
-  if (diff <= 7) return "due-soon";
+  if (isNaN(d.getTime())) return "";
+  const calDiff = (d - today) / 864e5;
+  if (calDiff < 0) return "";               // overdue/past — no highlight
+  if (calDiff === 0) return "due-today";
+  const bizDays = countBusinessDays(today, d);
+  if (bizDays <= 3) return "due-urgent";
+  if (bizDays <= 5) return "due-soon";
   return "";
 }
 function formatDateDisplay(d) {
@@ -573,20 +598,36 @@ function renderTable() {
     const alt   = colorMap[r.caseId];
     const t     = r.taskObj;
     const done  = t?.done === "true" || t?.done === true;
-    const dc    = t ? dueDateClass(t.due) : "";
+    const dc    = t && !done ? dueDateClass(t.due) : "";
 
     const tr = document.createElement("tr");
-    if (done) tr.className = "task-done";
+    const trClasses = [];
+    if (done) trClasses.push("task-done");
+    if (dc)   trClasses.push(dc);
+    if (trClasses.length) tr.className = trClasses.join(" ");
 
     const caseClass = alt ? "td-case-b" : "td-case-a";
     const taskClass = alt ? "td-task-b" : "td-task-a";
 
+    // Build due date cell
     let dueCellInner = "";
     if (t) {
-      if (dc === "overdue") {
-        dueCellInner = `<span class="overdue-date">${formatDateDisplay(t.due)}</span>`;
-      } else if (dc === "due-soon") {
-        dueCellInner = `<input class="editable due-soon-date" type="date" value="${esc(t.due)}" onchange="patchTask('${esc(t.taskId)}','due',this.value)">`;
+      const badgeClass = dc === "due-today"  ? "due-badge due-badge-today"
+                       : dc === "due-urgent" ? "due-badge due-badge-urgent"
+                       : dc === "due-soon"   ? "due-badge due-badge-soon"
+                       : "";
+      const dateDisplay = formatDateDisplay(t.due);
+      if (badgeClass) {
+        // Show badge label + hidden date input for editing on click
+        dueCellInner = `
+          <span class="${badgeClass}" title="Click to edit" style="cursor:pointer"
+            onclick="this.style.display='none';this.nextElementSibling.style.display='inline-block';this.nextElementSibling.focus()">
+            ${dateDisplay}
+          </span>
+          <input class="editable" type="date" value="${esc(t.due)}"
+            style="display:none"
+            onchange="patchTask('${esc(t.taskId)}','due',this.value);renderTable()"
+            onblur="renderTable()">`;
       } else {
         dueCellInner = `<input class="editable" type="date" value="${esc(t.due)}" onchange="patchTask('${esc(t.taskId)}','due',this.value)">`;
       }
