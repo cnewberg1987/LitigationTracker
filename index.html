@@ -682,32 +682,41 @@ async function toggleDone(taskId, checked) {
   } else {
     const t = tasks.find(x => x.taskId === taskId);
     if (t) { t.done = "false"; renderTable(); }
-    await api("updateTask", { taskId, done: false });
+    try {
+      await api("updateTask", { taskId, done: false });
+    } catch(e) { setStatus("Save failed: " + e.message, "error"); }
   }
 }
 
 // ── Remove task ───────────────────────────────────────────────
 async function removeTask(taskId) {
-  tasks = tasks.filter(x => x.taskId !== taskId);
-  renderTable();
   setStatus("Deleting…", "loading");
   try {
     await api("deleteTask", { taskId });
+    tasks = tasks.filter(x => x.taskId !== taskId);
+    renderTable();
     setStatus("Task removed ✓  " + new Date().toLocaleTimeString());
-  } catch(e) { setStatus("Delete failed: " + e.message, "error"); }
+  } catch(e) {
+    setStatus("Delete failed — please try again: " + e.message, "error");
+    // Re-render to restore the item visually since delete didn't complete
+    renderTable();
+  }
 }
 
 // ── Remove client ─────────────────────────────────────────────
 async function removeClient(caseId, clientName) {
   if (!confirm(`Remove ${clientName} and all their tasks?`)) return;
-  cases = cases.filter(x => x.caseId !== caseId);
-  tasks = tasks.filter(x => x.caseId !== caseId);
-  renderTable();
   setStatus("Deleting…", "loading");
   try {
     await api("deleteCase", { caseId });
+    cases = cases.filter(x => x.caseId !== caseId);
+    tasks = tasks.filter(x => x.caseId !== caseId);
+    renderTable();
     setStatus("Client removed ✓  " + new Date().toLocaleTimeString());
-  } catch(e) { setStatus("Delete failed: " + e.message, "error"); }
+  } catch(e) {
+    setStatus("Delete failed — please try again: " + e.message, "error");
+    renderTable();
+  }
 }
 
 // ── Add client modal ──────────────────────────────────────────
